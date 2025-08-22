@@ -1,0 +1,5 @@
+EL archivo maneja, estilos con tailwind, funcionalidad local con js y almacenamiento de los datos de manera local
+
+NO HAY NECESIDAD DE INSTALAR NADA ADICIONAL, solo abrir el archivo
+
+MUCHAS GRACIAS
