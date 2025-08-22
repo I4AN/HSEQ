@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lista de Tareas — Slim</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="color-scheme" content="light dark">
+  <script>
+    tailwind.config = { theme: { extend: { boxShadow: { soft: '0 10px 30px -12px rgb(0 0 0 / 0.2)' } } } };
+  </script>
+</head>
+<body class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 antialiased">
+  <header class="sticky top-0 z-10 backdrop-blur bg-white/70 dark:bg-slate-900/70 border-b border-slate-200/60 dark:border-slate-700/60">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">📝 Lista de tareas (Slim)</h1>
+      <div class="flex items-center gap-3">
+        <a href="#" id="clearDoneBtn" class="text-sm underline underline-offset-4 hover:no-underline opacity-80 hover:opacity-100">Borrar completadas</a>
+        <a href="#" id="clearAllBtn" class="text-sm underline underline-offset-4 hover:no-underline opacity-80 hover:opacity-100">Borrar todo</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-6">
+    <section class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-4 sm:p-6">
+      <!-- Formulario -->
+      <form id="taskForm" class="grid gap-3 sm:grid-cols-[1fr_auto]" autocomplete="off">
+        <div class="grid gap-3">
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label for="title" class="block text-sm font-medium mb-1">Título de la tarea</label>
+              <input id="title" required placeholder="Ej. Preparar reporte"
+                     class="w-full rounded-xl px-4 py-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label for="priority" class="block text-sm font-medium mb-1">Prioridad</label>
+              <select id="priority" class="w-full rounded-xl px-4 py-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="media">Media</option>
+                <option value="alta">Alta</option>
+                <option value="baja">Baja</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label for="tags" class="block text-sm font-medium mb-1">Etiquetas (separadas por comas)</label>
+            <input id="tags" placeholder="trabajo, urgente"
+                   class="w-full rounded-xl px-4 py-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+        </div>
+        <button class="w-full sm:w-auto rounded-xl px-4 py-2.5 font-semibold bg-indigo-600 text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Agregar</button>
+      </form>
+
+      <!-- Herramientas -->
+      <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        <div class="flex items-center gap-2" role="group" aria-label="Filtro por estado">
+          <button data-filter="all" class="filter px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700" aria-pressed="true">Todas</button>
+          <button data-filter="active" class="filter px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">Pendientes</button>
+          <button data-filter="done" class="filter px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">Completadas</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="categoryFilter" class="text-sm text-slate-500">Categoría:</label>
+          <select id="categoryFilter" class="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+            <option value="all">Todas</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="search" class="text-sm text-slate-500">Buscar:</label>
+          <input id="search" type="search" placeholder="título o etiqueta"
+                 class="flex-1 rounded-lg px-3 py-1.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+      </div>
+
+      <div class="mt-3 flex items-center justify-between text-sm">
+        <p><span id="leftCount" class="font-semibold">0</span> pendientes • <span id="totalCount">0</span> total</p>
+        <div class="flex items-center gap-2">
+          <label for="sort" class="text-slate-500">Ordenar:</label>
+          <select id="sort" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+            <option value="newest">Más recientes</option>
+            <option value="oldest">Más antiguas</option>
+            <option value="title">Título (A–Z)</option>
+            <option value="priorityHigh">Prioridad (Alta→Baja)</option>
+            <option value="priorityLow">Prioridad (Baja→Alta)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Lista -->
+      <ul id="list" class="mt-4 divide-y divide-slate-200 dark:divide-slate-700" aria-live="polite" aria-label="Lista de tareas"></ul>
+
+      <!-- Plantillas -->
+      <template id="tpl-empty">
+        <li class="py-10 text-center text-slate-500">No hay tareas con los filtros actuales.</li>
+      </template>
+      <template id="tpl-item">
+        <li class="group flex items-start gap-3 py-3">
+          <input type="checkbox" class="mt-1 peer size-5 shrink-0 rounded-md border-slate-300 dark:border-slate-600 focus:ring-indigo-500">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <p class="title leading-6 truncate"></p>
+              <div class="flex items-center gap-2">
+                <span class="priority badge inline-flex items-center px-2 py-0.5 rounded-full text-xs"></span>
+                <div class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 flex gap-2">
+                  <button title="Editar" class="edit inline-flex items-center rounded-lg px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">Editar</button>
+                  <button title="Eliminar" class="del inline-flex items-center rounded-lg px-2 py-1 text-sm border border-red-300/60 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40">Eliminar</button>
+                </div>
+              </div>
+            </div>
+            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span class="created inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">Creada: <time></time></span>
+              <span class="sr-only status"></span>
+              <span class="tags flex flex-wrap gap-1"></span>
+            </div>
+          </div>
+        </li>
+      </template>
+    </section>
+
+    <footer class="mt-6 text-center text-xs text-slate-500">
+      Hecho con HTML, Tailwind y JavaScript puro. Guarda en LocalStorage.
+    </footer>
+  </main>
+
+  <script>
+    // ===== Estado y utilidades mínimas =====
+    const SKEY = 'todo_slim_v1';
+    let items = JSON.parse(localStorage.getItem(SKEY) || '[]');
+    let ui = { filter:'all', category:'all', search:'', sort:'newest' };
+
+    const $ = (s, el=document)=> el.querySelector(s);
+    const $$ = (s, el=document)=> [...el.querySelectorAll(s)];
+    const save = () => localStorage.setItem(SKEY, JSON.stringify(items));
+    const uid  = () => crypto.randomUUID ? crypto.randomUUID() : (Date.now()+Math.random()).toString(36);
+    const tagsFrom = t => [...new Set(String(t||'').split(',').map(x=>x.trim()).filter(Boolean))];
+    const fmtDate  = ms => { const d=new Date(ms), p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}` };
+    const pW = p => ({alta:3,media:2,baja:1}[p]||2);
+
+    // ===== Elementos =====
+    const form = $('#taskForm'), titleIn = $('#title'), prioIn = $('#priority'), tagsIn = $('#tags');
+    const list = $('#list'), tplItem = $('#tpl-item'), tplEmpty = $('#tpl-empty');
+    const leftEl = $('#leftCount'), totalEl = $('#totalCount');
+    const sortSel = $('#sort'), catSel = $('#categoryFilter'), searchIn = $('#search');
+    const clearDoneBtn = $('#clearDoneBtn'), clearAllBtn = $('#clearAllBtn');
+
+    // ===== Render =====
+    function render() {
+      // categorías dinámicas
+      const allTags = [...new Set(items.flatMap(i=>i.tags||[]))].sort((a,b)=>a.localeCompare(b));
+      const current = catSel.value || 'all';
+      catSel.innerHTML = '<option value="all">Todas</option>' + allTags.map(t=>`<option value="${t}">${t}</option>`).join('');
+      catSel.value = allTags.includes(current) ? current : 'all';
+      ui.category = catSel.value;
+
+      // filtrar + buscar
+      let view = items.filter(i => (ui.filter==='active'? !i.done : ui.filter==='done'? i.done : true)
+        && (ui.category==='all' ? true : (i.tags||[]).includes(ui.category))
+        && (!ui.search || i.title.toLowerCase().includes(ui.search) || (i.tags||[]).some(t=>t.toLowerCase().includes(ui.search)))
+      );
+
+      // ordenar
+      view.sort((a,b)=> ui.sort==='newest'? b.createdAt-a.createdAt :
+                         ui.sort==='oldest'? a.createdAt-b.createdAt :
+                         ui.sort==='title' ? a.title.localeCompare(b.title) :
+                         ui.sort==='priorityHigh' ? pW(b.priority)-pW(a.priority) :
+                         pW(a.priority)-pW(b.priority));
+
+      // pintar
+      list.innerHTML='';
+      if (!view.length) list.append(tplEmpty.content.cloneNode(true));
+      view.forEach(it => {
+        const li = tplItem.content.cloneNode(true);
+        const cb = $('input[type="checkbox"]', li);
+        const title = $('.title', li);
+        const status = $('.status', li);
+        const time = $('.created time', li);
+        const tagsWrap = $('.tags', li);
+        const prBadge = $('.priority', li);
+
+        cb.checked = it.done;
+        title.textContent = it.title;
+        status.textContent = it.done ? 'Completada' : 'Activa';
+        time.textContent = fmtDate(it.createdAt); time.dateTime = new Date(it.createdAt).toISOString();
+        title.className = 'title leading-6 truncate ' + (it.done ? 'line-through text-slate-400 dark:text-slate-500' : '');
+        tagsWrap.innerHTML = (it.tags||[]).map(t=>`<span class="inline-flex items-center px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-900 text-indigo-700 dark:text-indigo-300">${t}</span>`).join('');
+
+        const pClass = it.priority==='alta' ? 'border-red-300 text-red-700 dark:border-red-900 dark:text-red-300' :
+                       it.priority==='baja' ? 'border-emerald-300 text-emerald-700 dark:border-emerald-900 dark:text-emerald-300' :
+                       'border-amber-300 text-amber-700 dark:border-amber-900 dark:text-amber-300';
+        prBadge.textContent = `Prioridad: ${({alta:'Alta',media:'Media',baja:'Baja'})[it.priority||'media']}`;
+        prBadge.className = `priority badge inline-flex items-center px-2 py-0.5 rounded-full text-xs border ${pClass}`;
+
+        // eventos del item
+        cb.addEventListener('change', ()=>{ it.done=!it.done; save(); render(); });
+        $('.del', li).addEventListener('click', ()=>{ items = items.filter(x=>x.id!==it.id); save(); render(); });
+        $('.edit', li).addEventListener('click', ()=> editInline(it.id));
+        title.addEventListener('dblclick', ()=> editInline(it.id));
+
+        list.append(li);
+      });
+
+      // contadores + estado de botones
+      leftEl.textContent = items.filter(i=>!i.done).length;
+      totalEl.textContent = items.length;
+      $$('.filter').forEach(b => {
+        const active = b.dataset.filter===ui.filter;
+        b.setAttribute('aria-pressed', active);
+        b.classList.toggle('bg-slate-100', active);
+        b.classList.toggle('dark:bg-slate-700', active);
+      });
+    }
+
+    // ===== Acciones =====
+    function addItem(title, tagsTxt, prio) {
+      const t = String(title||'').trim(); if (!t) return;
+      items.unshift({ id: uid(), title: t, done:false, createdAt: Date.now(), tags: tagsFrom(tagsTxt), priority: prio||'media' });
+      save(); render();
+    }
+
+    function editInline(id) {
+      // buscar li por título visible actual — mejor reconstruir desde estado
+      render(); // asegura DOM limpio
+      // volver a mapear ids a nodos
+      const nodes = $$('#list > li').filter(n=>$('.title',n));
+      const view = items.filter(i => (ui.filter==='active'? !i.done : ui.filter==='done'? i.done : true)
+        && (ui.category==='all' ? true : (i.tags||[]).includes(ui.category))
+        && (!ui.search || i.title.toLowerCase().includes(ui.search) || (i.tags||[]).some(t=>t.toLowerCase().includes(ui.search)))
+      ).sort((a,b)=> ui.sort==='newest'? b.createdAt-a.createdAt :
+                     ui.sort==='oldest'? a.createdAt-b.createdAt :
+                     ui.sort==='title' ? a.title.localeCompare(b.title) :
+                     ui.sort==='priorityHigh' ? pW(b.priority)-pW(a.priority) :
+                     pW(a.priority)-pW(b.priority));
+      const idx = view.findIndex(x=>x.id===id);
+      const li = nodes[idx]; if (!li) return;
+      const it = view[idx];
+
+      // inputs inline
+      const titleEl = $('.title', li);
+      const tagsWrap = $('.tags', li);
+      const prBadge = $('.priority', li);
+      const actions = li.querySelector('.opacity-0');
+      actions.classList.remove('opacity-0');
+
+      const tIn = document.createElement('input');
+      tIn.value = it.title; tIn.className='w-full rounded-lg px-2 py-1 bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+      titleEl.replaceWith(tIn);
+
+      const tagIn = document.createElement('input');
+      tagIn.value = (it.tags||[]).join(', ');
+      tagIn.className='w-full sm:w-auto rounded-lg px-2 py-1 bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+      tagsWrap.replaceWith(tagIn);
+
+      const pSel = document.createElement('select');
+      pSel.innerHTML='<option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option>';
+      pSel.value = it.priority||'media';
+      pSel.className='rounded-lg px-2 py-1 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900';
+      prBadge.replaceWith(pSel);
+
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent='Guardar';
+      saveBtn.className='inline-flex items-center rounded-lg px-2 py-1 text-sm border border-green-300/60 text-green-700 hover:bg-green-50 dark:hover:bg-green-900/30';
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent='Cancelar';
+      cancelBtn.className='inline-flex items-center rounded-lg px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700';
+      actions.append(saveBtn,cancelBtn);
+
+      const finish = ok => {
+        if (ok && tIn.value.trim()) {
+          it.title = tIn.value.trim();
+          it.tags = tagsFrom(tagIn.value);
+          it.priority = pSel.value;
+          // sincroniza en items por id
+          const j = items.findIndex(x=>x.id===it.id);
+          if (j>-1) items[j]=it;
+          save();
+        }
+        saveBtn.remove(); cancelBtn.remove();
+        render();
+      };
+      saveBtn.addEventListener('click', ()=>finish(true));
+      cancelBtn.addEventListener('click', ()=>finish(false));
+      tIn.addEventListener('keydown', e=>{ if(e.key==='Enter') finish(true); if(e.key==='Escape') finish(false); });
+      tIn.addEventListener('blur', ()=>finish(true));
+      tIn.focus();
+    }
+
+    // ===== Eventos globales =====
+    form.addEventListener('submit', e => { e.preventDefault(); addItem(titleIn.value, tagsIn.value, prioIn.value); form.reset(); titleIn.focus(); });
+    $$('.filter').forEach(b => b.addEventListener('click', ()=>{ ui.filter=b.dataset.filter; render(); }));
+    catSel.addEventListener('change', ()=>{ ui.category = catSel.value; render(); });
+    sortSel.addEventListener('change', ()=>{ ui.sort = sortSel.value; render(); });
+    searchIn.addEventListener('input', ()=>{ ui.search = searchIn.value.trim().toLowerCase(); render(); });
+    clearDoneBtn.addEventListener('click', e=>{ e.preventDefault(); items = items.filter(i=>!i.done); save(); render(); });
+    clearAllBtn.addEventListener('click', e=>{ e.preventDefault(); if(confirm('¿Borrar todas las tareas?')){ items=[]; save(); render(); } });
+
+    // inicio
+    render();
+  </script>
+</body>
+</html>
